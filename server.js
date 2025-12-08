@@ -1,15 +1,15 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+const { MongoClient, ServerApiVersion } = require("mongodb");
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+require("dotenv").config();
 
 // Import routes
-const authRoutes = require('./routes/auth');
-const lessonRoutes = require('./routes/lessons');
-const userRoutes = require('./routes/users');
-const adminRoutes = require('./routes/admin');
-const stripeRoutes = require('./routes/stripe');
+const authRoutes = require("./routes/auth");
+const lessonRoutes = require("./routes/lessons");
+const userRoutes = require("./routes/users");
+const adminRoutes = require("./routes/admin");
+const stripeRoutes = require("./routes/stripe");
 
 const app = express();
 
@@ -27,7 +27,7 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 async function run() {
   try {
@@ -35,7 +35,9 @@ async function run() {
     await client.connect();
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
@@ -43,20 +45,23 @@ async function run() {
 }
 run().catch(console.dir);
 
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/lesson_platform')
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+mongoose
+  .connect(
+    process.env.MONGODB_URI || "mongodb://localhost:27017/lesson_platform"
+  )
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/lessons', lessonRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/stripe', stripeRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/lessons", lessonRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/stripe", stripeRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'Server is running' });
+app.get("/api/health", (req, res) => {
+  res.json({ status: "Server is running" });
 });
 
 // Error handling middleware
@@ -64,8 +69,8 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
     success: false,
-    message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : {}
+    message: "Internal server error",
+    error: process.env.NODE_ENV === "development" ? err.message : {},
   });
 });
 
