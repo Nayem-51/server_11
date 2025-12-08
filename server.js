@@ -45,12 +45,7 @@ async function run() {
 }
 run().catch(console.dir);
 
-mongoose
-  .connect(
-    process.env.MONGODB_URI || "mongodb://localhost:27017/lesson_platform"
-  )
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+
 
 // API Routes
 app.use("/api/auth", authRoutes);
