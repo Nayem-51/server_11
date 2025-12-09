@@ -5,9 +5,9 @@ const Favorite = require("../models/Favorite");
 // Get all lessons (public)
 const getAllLessons = async (req, res) => {
   try {
-    const { category, level, sort, page = 1, limit = 10 } = req.query;
+    const { category, level, sort, page = 1, limit = 100 } = req.query;
 
-    let filter = { isPublished: true };
+    let filter = {};
 
     if (category) filter.category = category;
     if (level) filter.level = level;
@@ -15,13 +15,13 @@ const getAllLessons = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const lessons = await Lesson.find(filter)
-      .populate("instructor", "displayName photoURL")
-      .populate("creator", "name photoURL")
+      .populate("instructor", "displayName photoURL email")
       .sort(sort || "-createdAt")
       .skip(skip)
       .limit(parseInt(limit));
 
     const total = await Lesson.countDocuments(filter);
+    console.log(`getAllLessons returning ${lessons.length} lessons`);
 
     res.json({
       success: true,
@@ -33,6 +33,7 @@ const getAllLessons = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Error in getAllLessons:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching lessons",
@@ -44,22 +45,35 @@ const getAllLessons = async (req, res) => {
 // Get public lessons
 const getPublicLessons = async (req, res) => {
   try {
-    const { category, sort, page = 1, limit = 10 } = req.query;
+    const { category, sort, page = 1, limit = 100 } = req.query;
 
-    let filter = { isPublished: true, accessLevel: "public" };
+    // First check if any lessons exist at all
+    const totalLessons = await Lesson.countDocuments({});
+    console.log(`Total lessons in database: ${totalLessons}`);
 
+    // Try to get published lessons first
+    let filter = { isPublished: true };
     if (category) filter.category = category;
 
     const skip = (page - 1) * limit;
 
-    const lessons = await Lesson.find(filter)
-      .populate("creator", "name photoURL displayName")
-      .populate("instructor", "displayName photoURL")
+    let lessons = await Lesson.find(filter)
+      .populate("instructor", "displayName photoURL email")
       .sort(sort || "-createdAt")
       .skip(skip)
       .limit(parseInt(limit));
 
-    const total = await Lesson.countDocuments(filter);
+    // If no published lessons, get all lessons
+    if (lessons.length === 0 && totalLessons > 0) {
+      console.log("No published lessons found, fetching all lessons");
+      lessons = await Lesson.find({})
+        .populate("instructor", "displayName photoURL email")
+        .sort("-createdAt")
+        .limit(parseInt(limit));
+    }
+
+    const total = lessons.length;
+    console.log(`Returning ${total} lessons`);
 
     res.json({
       success: true,
@@ -71,6 +85,7 @@ const getPublicLessons = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Error in getPublicLessons:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching public lessons",
@@ -123,20 +138,55 @@ const createLesson = async (req, res) => {
       image,
       duration,
       isPremium,
+      isPublished,
+      content,
       tags,
     } = req.body;
+
+    // Validation
+    if (!title || !description || !category) {
+      return res.status(400).json({
+        success: false,
+        message: "Title, description, and category are required",
+      });
+    }
+
+    // Get instructor ID - resolve from Firebase UID if needed
+    let instructorId = req.user._id;
+    
+    if (!instructorId && req.user.uid) {
+      // Find user by Firebase UID
+      const User = require("../models/User");
+      const user = await User.findOne({ uid: req.user.uid });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found. Please complete registration.",
+        });
+      }
+      instructorId = user._id;
+    }
+
+    if (!instructorId) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid user authentication",
+      });
+    }
 
     const lesson = new Lesson({
       title,
       description,
       category,
-      level,
-      price,
-      image,
-      duration,
-      isPremium,
-      tags,
-      instructor: req.user._id || req.user.uid,
+      level: level || "beginner",
+      price: price || 0,
+      image: image || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800",
+      duration: duration || 30,
+      isPremium: isPremium || false,
+      isPublished: isPublished !== undefined ? isPublished : true,
+      content: content || "",
+      tags: tags || [],
+      instructor: instructorId,
     });
 
     await lesson.save();
@@ -147,6 +197,7 @@ const createLesson = async (req, res) => {
       data: lesson,
     });
   } catch (error) {
+    console.error("Create lesson error:", error);
     res.status(500).json({
       success: false,
       message: "Error creating lesson",

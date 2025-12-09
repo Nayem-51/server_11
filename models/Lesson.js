@@ -25,12 +25,11 @@ const lessonSchema = new mongoose.Schema({
   },
   price: {
     type: Number,
-    required: true,
     default: 0
   },
   image: {
     type: String,
-    required: true
+    default: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800'
   },
   videoUrl: {
     type: String,
@@ -38,7 +37,7 @@ const lessonSchema = new mongoose.Schema({
   },
   duration: {
     type: Number, // in minutes
-    required: true
+    default: 30
   },
   content: {
     type: String, // Detailed lesson content
