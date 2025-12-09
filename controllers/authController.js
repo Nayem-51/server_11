@@ -149,9 +149,47 @@ const logout = async (req, res) => {
   });
 };
 
+// Get current authenticated user
+const getCurrentUser = async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const user = await User.findById(req.user.uid || req.user._id || req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          _id: user._id,
+          email: user.email,
+          name: user.displayName || user.name,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          role: user.role,
+          isPremium: user.isPremium || false,
+          totalLessons: user.totalLessons || 0
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching user',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   firebaseAuth,
-  logout
+  logout,
+  getCurrentUser
 };

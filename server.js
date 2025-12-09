@@ -1,8 +1,33 @@
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const express = require("express");
+const jwt = require('jsonwebtoken');
 const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
+
+const admin = require("firebase-admin");
+
+// Initialize Firebase Admin from environment variable
+let firebaseConfig;
+try {
+  const serviceKeyBase64 = process.env.FIREBASE_SERVICE_KEY;
+  if (serviceKeyBase64) {
+    const serviceKeyJson = Buffer.from(serviceKeyBase64, 'base64').toString('utf-8');
+    firebaseConfig = JSON.parse(serviceKeyJson);
+  } else {
+    // Fallback: try to load from JSON file if it exists
+    firebaseConfig = require("./digitallifelessonsa11-firebase-adminsdk.json");
+  }
+} catch (err) {
+  console.error('Firebase config error:', err.message);
+  console.warn('Firebase auth may not work. Check FIREBASE_SERVICE_KEY env variable.');
+}
+
+if (firebaseConfig) {
+  admin.initializeApp({
+    credential: admin.credential.cert(firebaseConfig)
+  });
+}
 
 // Import routes
 const authRoutes = require("./routes/auth");
@@ -14,38 +39,44 @@ const stripeRoutes = require("./routes/stripe");
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:5173", "http://localhost:3000"],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB Connection
+// MongoDB Connection using Mongoose
+const mongoUri = process.env.MONGODB_URI || 
+  `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.mbp6mif.mongodb.net/?appName=Cluster0`;
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.mbp6mif.mongodb.net/?appName=Cluster0`;
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
+mongoose.connect(mongoUri)
+  .then(() => {
+    console.log("✓ MongoDB connected successfully");
+  })
+  .catch((error) => {
+    console.error("✗ MongoDB connection error:", error.message);
+  });
+
+// Legacy MongoDB driver connection (optional, keep for compatibility)
+const client = new MongoClient(mongoUri, {
   serverApi: {
     version: ServerApiVersion.v1,
-    strict: true,
+    strict: false,
     deprecationErrors: true,
   },
 });
+
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
+    console.log("✓ Legacy MongoDB client connected");
+  } catch (error) {
+    console.error("✗ Legacy MongoDB connection error:", error.message);
   }
 }
+
 run().catch(console.dir);
-
-
 
 // API Routes
 app.use("/api/auth", authRoutes);

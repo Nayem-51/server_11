@@ -1,9 +1,7 @@
 const admin = require('firebase-admin');
 const jwt = require('jsonwebtoken');
 
-// Initialize Firebase Admin (if using Firebase Auth)
-// Note: Make sure to initialize Firebase in your server.js
-
+// Verify Bearer token (Firebase or JWT)
 const verifyToken = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
