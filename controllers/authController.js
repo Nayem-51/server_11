@@ -1,5 +1,5 @@
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
+const User = require("../models/User");
+const jwt = require("jsonwebtoken");
 
 // Register user
 const register = async (req, res) => {
@@ -11,7 +11,7 @@ const register = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'User already exists'
+        message: "User already exists",
       });
     }
 
@@ -20,7 +20,7 @@ const register = async (req, res) => {
       email,
       displayName,
       photoURL,
-      role: 'user'
+      role: "user",
     });
 
     await user.save();
@@ -29,27 +29,27 @@ const register = async (req, res) => {
     const token = jwt.sign(
       { uid: user._id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: "7d" }
     );
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: "User registered successfully",
       data: {
         user: {
           _id: user._id,
           email: user.email,
           displayName: user.displayName,
-          role: user.role
+          role: user.role,
         },
-        token
-      }
+        token,
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error registering user',
-      error: error.message
+      message: "Error registering user",
+      error: error.message,
     });
   }
 };
@@ -64,7 +64,7 @@ const login = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
@@ -72,28 +72,28 @@ const login = async (req, res) => {
     const token = jwt.sign(
       { uid: user._id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: "7d" }
     );
 
     res.json({
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       data: {
         user: {
           _id: user._id,
           email: user.email,
           displayName: user.displayName,
           role: user.role,
-          photoURL: user.photoURL
+          photoURL: user.photoURL,
         },
-        token
-      }
+        token,
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error logging in',
-      error: error.message
+      message: "Error logging in",
+      error: error.message,
     });
   }
 };
@@ -113,14 +113,14 @@ const firebaseAuth = async (req, res) => {
         email,
         displayName,
         photoURL,
-        role: 'user'
+        role: "user",
       });
       await user.save();
     }
 
     res.json({
       success: true,
-      message: 'Authentication successful',
+      message: "Authentication successful",
       data: {
         user: {
           _id: user._id,
@@ -128,15 +128,15 @@ const firebaseAuth = async (req, res) => {
           email: user.email,
           displayName: user.displayName,
           role: user.role,
-          photoURL: user.photoURL
-        }
-      }
+          photoURL: user.photoURL,
+        },
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error with Firebase authentication',
-      error: error.message
+      message: "Error with Firebase authentication",
+      error: error.message,
     });
   }
 };
@@ -145,20 +145,22 @@ const firebaseAuth = async (req, res) => {
 const logout = async (req, res) => {
   res.json({
     success: true,
-    message: 'Logout successful'
+    message: "Logout successful",
   });
 };
 
 // Get current authenticated user
 const getCurrentUser = async (req, res) => {
   try {
-    const User = require('../models/User');
-    const user = await User.findById(req.user.uid || req.user._id || req.user.id);
-    
+    const User = require("../models/User");
+    const user = await User.findById(
+      req.user.uid || req.user._id || req.user.id
+    );
+
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
@@ -173,15 +175,15 @@ const getCurrentUser = async (req, res) => {
           photoURL: user.photoURL,
           role: user.role,
           isPremium: user.isPremium || false,
-          totalLessons: user.totalLessons || 0
-        }
-      }
+          totalLessons: user.totalLessons || 0,
+        },
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error fetching user',
-      error: error.message
+      message: "Error fetching user",
+      error: error.message,
     });
   }
 };
@@ -191,5 +193,5 @@ module.exports = {
   login,
   firebaseAuth,
   logout,
-  getCurrentUser
+  getCurrentUser,
 };

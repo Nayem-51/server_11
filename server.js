@@ -1,6 +1,6 @@
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const express = require("express");
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
@@ -12,20 +12,24 @@ let firebaseConfig;
 try {
   const serviceKeyBase64 = process.env.FIREBASE_SERVICE_KEY;
   if (serviceKeyBase64) {
-    const serviceKeyJson = Buffer.from(serviceKeyBase64, 'base64').toString('utf-8');
+    const serviceKeyJson = Buffer.from(serviceKeyBase64, "base64").toString(
+      "utf-8"
+    );
     firebaseConfig = JSON.parse(serviceKeyJson);
   } else {
     // Fallback: try to load from JSON file if it exists
     firebaseConfig = require("./digitallifelessonsa11-firebase-adminsdk.json");
   }
 } catch (err) {
-  console.error('Firebase config error:', err.message);
-  console.warn('Firebase auth may not work. Check FIREBASE_SERVICE_KEY env variable.');
+  console.error("Firebase config error:", err.message);
+  console.warn(
+    "Firebase auth may not work. Check FIREBASE_SERVICE_KEY env variable."
+  );
 }
 
 if (firebaseConfig) {
   admin.initializeApp({
-    credential: admin.credential.cert(firebaseConfig)
+    credential: admin.credential.cert(firebaseConfig),
   });
 }
 
@@ -39,18 +43,22 @@ const stripeRoutes = require("./routes/stripe");
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:3000"],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:3000"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB Connection using Mongoose
-const mongoUri = process.env.MONGODB_URI || 
+const mongoUri =
+  process.env.MONGODB_URI ||
   `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.mbp6mif.mongodb.net/?appName=Cluster0`;
 
-mongoose.connect(mongoUri)
+mongoose
+  .connect(mongoUri)
   .then(() => {
     console.log("✓ MongoDB connected successfully");
   })

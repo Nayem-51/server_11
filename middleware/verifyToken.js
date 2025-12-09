@@ -1,15 +1,15 @@
-const admin = require('firebase-admin');
-const jwt = require('jsonwebtoken');
+const admin = require("firebase-admin");
+const jwt = require("jsonwebtoken");
 
 // Verify Bearer token (Firebase or JWT)
 const verifyToken = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'No token provided'
+        message: "No token provided",
       });
     }
 
@@ -18,7 +18,7 @@ const verifyToken = async (req, res, next) => {
       const decodedToken = await admin.auth().verifyIdToken(token);
       req.user = {
         uid: decodedToken.uid,
-        email: decodedToken.email
+        email: decodedToken.email,
       };
       return next();
     } catch (firebaseError) {
@@ -30,8 +30,8 @@ const verifyToken = async (req, res, next) => {
   } catch (error) {
     return res.status(401).json({
       success: false,
-      message: 'Invalid token',
-      error: error.message
+      message: "Invalid token",
+      error: error.message,
     });
   }
 };

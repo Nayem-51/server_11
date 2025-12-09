@@ -1,6 +1,6 @@
-const Lesson = require('../models/Lesson');
-const Comment = require('../models/Comment');
-const Favorite = require('../models/Favorite');
+const Lesson = require("../models/Lesson");
+const Comment = require("../models/Comment");
+const Favorite = require("../models/Favorite");
 
 // Get all lessons (public)
 const getAllLessons = async (req, res) => {
@@ -15,9 +15,9 @@ const getAllLessons = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const lessons = await Lesson.find(filter)
-      .populate('instructor', 'displayName photoURL')
-      .populate('creator', 'name photoURL')
-      .sort(sort || '-createdAt')
+      .populate("instructor", "displayName photoURL")
+      .populate("creator", "name photoURL")
+      .sort(sort || "-createdAt")
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -29,14 +29,14 @@ const getAllLessons = async (req, res) => {
       pagination: {
         total,
         page: parseInt(page),
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error fetching lessons',
-      error: error.message
+      message: "Error fetching lessons",
+      error: error.message,
     });
   }
 };
@@ -46,16 +46,16 @@ const getPublicLessons = async (req, res) => {
   try {
     const { category, sort, page = 1, limit = 10 } = req.query;
 
-    let filter = { isPublished: true, accessLevel: 'public' };
+    let filter = { isPublished: true, accessLevel: "public" };
 
     if (category) filter.category = category;
 
     const skip = (page - 1) * limit;
 
     const lessons = await Lesson.find(filter)
-      .populate('creator', 'name photoURL displayName')
-      .populate('instructor', 'displayName photoURL')
-      .sort(sort || '-createdAt')
+      .populate("creator", "name photoURL displayName")
+      .populate("instructor", "displayName photoURL")
+      .sort(sort || "-createdAt")
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -67,14 +67,14 @@ const getPublicLessons = async (req, res) => {
       pagination: {
         total,
         page: parseInt(page),
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error fetching public lessons',
-      error: error.message
+      message: "Error fetching public lessons",
+      error: error.message,
     });
   }
 };
@@ -85,28 +85,28 @@ const getLessonById = async (req, res) => {
     const { id } = req.params;
 
     const lesson = await Lesson.findById(id)
-      .populate('instructor', 'displayName photoURL bio')
+      .populate("instructor", "displayName photoURL bio")
       .populate({
-        path: 'enrolledStudents',
-        select: 'displayName photoURL'
+        path: "enrolledStudents",
+        select: "displayName photoURL",
       });
 
     if (!lesson) {
       return res.status(404).json({
         success: false,
-        message: 'Lesson not found'
+        message: "Lesson not found",
       });
     }
 
     res.json({
       success: true,
-      data: lesson
+      data: lesson,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error fetching lesson',
-      error: error.message
+      message: "Error fetching lesson",
+      error: error.message,
     });
   }
 };
@@ -114,7 +114,17 @@ const getLessonById = async (req, res) => {
 // Create lesson (instructor only)
 const createLesson = async (req, res) => {
   try {
-    const { title, description, category, level, price, image, duration, isPremium, tags } = req.body;
+    const {
+      title,
+      description,
+      category,
+      level,
+      price,
+      image,
+      duration,
+      isPremium,
+      tags,
+    } = req.body;
 
     const lesson = new Lesson({
       title,
@@ -126,21 +136,21 @@ const createLesson = async (req, res) => {
       duration,
       isPremium,
       tags,
-      instructor: req.user._id || req.user.uid
+      instructor: req.user._id || req.user.uid,
     });
 
     await lesson.save();
 
     res.status(201).json({
       success: true,
-      message: 'Lesson created successfully',
-      data: lesson
+      message: "Lesson created successfully",
+      data: lesson,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error creating lesson',
-      error: error.message
+      message: "Error creating lesson",
+      error: error.message,
     });
   }
 };
@@ -156,15 +166,17 @@ const updateLesson = async (req, res) => {
     if (!lesson) {
       return res.status(404).json({
         success: false,
-        message: 'Lesson not found'
+        message: "Lesson not found",
       });
     }
 
     // Check if user is the instructor
-    if (lesson.instructor.toString() !== (req.user._id || req.user.uid).toString()) {
+    if (
+      lesson.instructor.toString() !== (req.user._id || req.user.uid).toString()
+    ) {
       return res.status(403).json({
         success: false,
-        message: 'Unauthorized - You can only edit your own lessons'
+        message: "Unauthorized - You can only edit your own lessons",
       });
     }
 
@@ -174,14 +186,14 @@ const updateLesson = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Lesson updated successfully',
-      data: lesson
+      message: "Lesson updated successfully",
+      data: lesson,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error updating lesson',
-      error: error.message
+      message: "Error updating lesson",
+      error: error.message,
     });
   }
 };
@@ -196,15 +208,17 @@ const deleteLesson = async (req, res) => {
     if (!lesson) {
       return res.status(404).json({
         success: false,
-        message: 'Lesson not found'
+        message: "Lesson not found",
       });
     }
 
     // Check if user is the instructor
-    if (lesson.instructor.toString() !== (req.user._id || req.user.uid).toString()) {
+    if (
+      lesson.instructor.toString() !== (req.user._id || req.user.uid).toString()
+    ) {
       return res.status(403).json({
         success: false,
-        message: 'Unauthorized - You can only delete your own lessons'
+        message: "Unauthorized - You can only delete your own lessons",
       });
     }
 
@@ -212,13 +226,13 @@ const deleteLesson = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Lesson deleted successfully'
+      message: "Lesson deleted successfully",
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error deleting lesson',
-      error: error.message
+      message: "Error deleting lesson",
+      error: error.message,
     });
   }
 };
@@ -234,7 +248,7 @@ const enrollLesson = async (req, res) => {
     if (!lesson) {
       return res.status(404).json({
         success: false,
-        message: 'Lesson not found'
+        message: "Lesson not found",
       });
     }
 
@@ -242,7 +256,7 @@ const enrollLesson = async (req, res) => {
     if (lesson.enrolledStudents.includes(userId)) {
       return res.status(400).json({
         success: false,
-        message: 'Already enrolled in this lesson'
+        message: "Already enrolled in this lesson",
       });
     }
 
@@ -251,14 +265,14 @@ const enrollLesson = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Enrolled successfully',
-      data: lesson
+      message: "Enrolled successfully",
+      data: lesson,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error enrolling in lesson',
-      error: error.message
+      message: "Error enrolling in lesson",
+      error: error.message,
     });
   }
 };
@@ -275,7 +289,7 @@ const addComment = async (req, res) => {
     if (!lesson) {
       return res.status(404).json({
         success: false,
-        message: 'Lesson not found'
+        message: "Lesson not found",
       });
     }
 
@@ -283,24 +297,24 @@ const addComment = async (req, res) => {
       lesson: id,
       author: userId,
       text,
-      rating
+      rating,
     });
 
     await comment.save();
 
     // Populate author info
-    await comment.populate('author', 'displayName photoURL');
+    await comment.populate("author", "displayName photoURL");
 
     res.status(201).json({
       success: true,
-      message: 'Comment added successfully',
-      data: comment
+      message: "Comment added successfully",
+      data: comment,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error adding comment',
-      error: error.message
+      message: "Error adding comment",
+      error: error.message,
     });
   }
 };
@@ -311,19 +325,19 @@ const getComments = async (req, res) => {
     const { id } = req.params;
 
     const comments = await Comment.find({ lesson: id })
-      .populate('author', 'displayName photoURL')
-      .populate('replies.author', 'displayName photoURL')
-      .sort('-createdAt');
+      .populate("author", "displayName photoURL")
+      .populate("replies.author", "displayName photoURL")
+      .sort("-createdAt");
 
     res.json({
       success: true,
-      data: comments
+      data: comments,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error fetching comments',
-      error: error.message
+      message: "Error fetching comments",
+      error: error.message,
     });
   }
 };
@@ -338,7 +352,7 @@ const addFavorite = async (req, res) => {
     if (!lesson) {
       return res.status(404).json({
         success: false,
-        message: 'Lesson not found'
+        message: "Lesson not found",
       });
     }
 
@@ -352,14 +366,14 @@ const addFavorite = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Added to favorites',
-      data: lesson
+      message: "Added to favorites",
+      data: lesson,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error adding favorite',
-      error: error.message
+      message: "Error adding favorite",
+      error: error.message,
     });
   }
 };
@@ -374,7 +388,7 @@ const removeFavorite = async (req, res) => {
     if (!lesson) {
       return res.status(404).json({
         success: false,
-        message: 'Lesson not found'
+        message: "Lesson not found",
       });
     }
 
@@ -390,14 +404,14 @@ const removeFavorite = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Removed from favorites',
-      data: lesson
+      message: "Removed from favorites",
+      data: lesson,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error removing favorite',
-      error: error.message
+      message: "Error removing favorite",
+      error: error.message,
     });
   }
 };
@@ -412,7 +426,7 @@ const likeLesson = async (req, res) => {
     if (!lesson) {
       return res.status(404).json({
         success: false,
-        message: 'Lesson not found'
+        message: "Lesson not found",
       });
     }
 
@@ -436,14 +450,14 @@ const likeLesson = async (req, res) => {
 
     res.json({
       success: true,
-      message: likeIndex > -1 ? 'Like removed' : 'Lesson liked',
-      data: lesson
+      message: likeIndex > -1 ? "Like removed" : "Lesson liked",
+      data: lesson,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error liking lesson',
-      error: error.message
+      message: "Error liking lesson",
+      error: error.message,
     });
   }
 };
@@ -460,14 +474,14 @@ const reportLesson = async (req, res) => {
     if (!lesson) {
       return res.status(404).json({
         success: false,
-        message: 'Lesson not found'
+        message: "Lesson not found",
       });
     }
 
     // In production, create a LessonReport model and save
     // For now, log and respond
-    const LessonReport = require('../models/LessonReport') || {
-      create: async (data) => data
+    const LessonReport = require("../models/LessonReport") || {
+      create: async (data) => data,
     };
 
     try {
@@ -475,28 +489,28 @@ const reportLesson = async (req, res) => {
         lessonId: id,
         reporterUserId: userId,
         reportedUserEmail: userEmail,
-        reason: reason || 'Other',
-        timestamp: new Date()
+        reason: reason || "Other",
+        timestamp: new Date(),
       });
 
       res.json({
         success: true,
-        message: 'Lesson reported successfully',
-        data: report
+        message: "Lesson reported successfully",
+        data: report,
       });
     } catch (_err) {
       // LessonReport model doesn't exist yet, return success anyway
       res.json({
         success: true,
-        message: 'Report submitted (logging locally)',
-        data: { lessonId: id, reason, userId, timestamp: new Date() }
+        message: "Report submitted (logging locally)",
+        data: { lessonId: id, reason, userId, timestamp: new Date() },
       });
     }
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error reporting lesson',
-      error: error.message
+      message: "Error reporting lesson",
+      error: error.message,
     });
   }
 };
@@ -514,5 +528,5 @@ module.exports = {
   addFavorite,
   removeFavorite,
   likeLesson,
-  reportLesson
+  reportLesson,
 };
