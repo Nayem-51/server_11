@@ -153,7 +153,7 @@ const createLesson = async (req, res) => {
 
     // Get instructor ID - resolve from Firebase UID if needed
     let instructorId = req.user._id;
-    
+
     if (!instructorId && req.user.uid) {
       // Find user by Firebase UID
       const User = require("../models/User");
@@ -180,7 +180,9 @@ const createLesson = async (req, res) => {
       category,
       level: level || "beginner",
       price: price || 0,
-      image: image || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800",
+      image:
+        image ||
+        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800",
       duration: duration || 30,
       isPremium: isPremium || false,
       isPublished: isPublished !== undefined ? isPublished : true,

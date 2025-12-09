@@ -1,75 +1,78 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const lessonSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: true
+    required: true,
   },
   description: {
     type: String,
-    required: true
+    required: true,
   },
   category: {
     type: String,
-    required: true
+    required: true,
   },
   level: {
     type: String,
-    enum: ['beginner', 'intermediate', 'advanced'],
-    default: 'beginner'
+    enum: ["beginner", "intermediate", "advanced"],
+    default: "beginner",
   },
   instructor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: "User",
+    required: true,
   },
   price: {
     type: Number,
-    default: 0
+    default: 0,
   },
   image: {
     type: String,
-    default: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800'
+    default:
+      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800",
   },
   videoUrl: {
     type: String,
-    default: null
+    default: null,
   },
   duration: {
     type: Number, // in minutes
-    default: 30
+    default: 30,
   },
   content: {
     type: String, // Detailed lesson content
-    default: null
+    default: null,
   },
   rating: {
     type: Number,
     default: 0,
     min: 0,
-    max: 5
+    max: 5,
   },
-  enrolledStudents: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
+  enrolledStudents: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ],
   isPremium: {
     type: Boolean,
-    default: false
+    default: false,
   },
   isPublished: {
     type: Boolean,
-    default: false
+    default: false,
   },
   tags: [String],
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-module.exports = mongoose.model('Lesson', lessonSchema);
+module.exports = mongoose.model("Lesson", lessonSchema);
