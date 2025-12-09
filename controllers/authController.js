@@ -34,7 +34,7 @@ const register = async (req, res) => {
           },
         });
       }
-      
+
       return res.status(409).json({
         success: false,
         message: "User already exists",
@@ -148,7 +148,9 @@ const login = async (req, res) => {
     }
 
     // Find user
-    const user = await User.findOne({ email }).select("+password +displayName +photoURL +role +email");
+    const user = await User.findOne({ email }).select(
+      "+password +displayName +photoURL +role +email"
+    );
     if (!user || !user.password) {
       return res.status(401).json({
         success: false,
