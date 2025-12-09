@@ -1,66 +1,76 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
   uid: {
     type: String,
     unique: true,
-    sparse: true // For Firebase UID
+    sparse: true, // For Firebase UID
   },
   email: {
     type: String,
     required: true,
     unique: true,
-    lowercase: true
+    lowercase: true,
   },
   displayName: {
     type: String,
-    required: true
+    required: true,
+  },
+  password: {
+    type: String,
+    select: false,
+    required: function () {
+      // Require password for local accounts; Firebase accounts carry uid
+      return !this.uid;
+    },
   },
   photoURL: {
     type: String,
-    default: null
+    default: null,
   },
   role: {
     type: String,
-    enum: ['user', 'instructor', 'admin'],
-    default: 'user'
+    enum: ["user", "instructor", "admin"],
+    default: "user",
   },
   phone: {
     type: String,
-    default: null
+    default: null,
   },
   bio: {
     type: String,
-    default: null
+    default: null,
   },
   isActive: {
     type: Boolean,
-    default: true
+    default: true,
   },
   isPremium: {
     type: Boolean,
-    default: false
+    default: false,
   },
   premiumExpiry: {
     type: Date,
-    default: null
+    default: null,
   },
   stripeCustomerId: {
     type: String,
-    default: null
+    default: null,
   },
-  enrolledLessons: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Lesson'
-  }],
+  enrolledLessons: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Lesson",
+    },
+  ],
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model("User", userSchema);

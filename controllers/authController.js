@@ -1,24 +1,103 @@
 const User = require("../models/User");
+const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 
 // Register user
 const register = async (req, res) => {
   try {
-    const { email, displayName, password, photoURL } = req.body;
+    const { email, displayName, password, photoURL, uid } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({
+      // For Firebase users trying to re-register, return existing user
+      if (uid && existingUser.uid === uid) {
+        const token = jwt.sign(
+          { uid: existingUser._id, email: existingUser.email },
+          process.env.JWT_SECRET,
+          { expiresIn: "7d" }
+        );
+        return res.json({
+          success: true,
+          message: "User already registered",
+          data: {
+            user: {
+              _id: existingUser._id,
+              email: existingUser.email,
+              displayName: existingUser.displayName,
+              role: existingUser.role,
+              photoURL: existingUser.photoURL,
+              isPremium: existingUser.isPremium || false,
+            },
+            token,
+          },
+        });
+      }
+      
+      return res.status(409).json({
         success: false,
         message: "User already exists",
       });
     }
 
+    // Firebase user registration (no password required)
+    if (uid) {
+      const user = new User({
+        uid,
+        email,
+        displayName: displayName || email.split("@")[0],
+        photoURL,
+        role: "user",
+      });
+
+      await user.save();
+
+      const token = jwt.sign(
+        { uid: user._id, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      return res.status(201).json({
+        success: true,
+        message: "User registered successfully",
+        data: {
+          user: {
+            _id: user._id,
+            email: user.email,
+            displayName: user.displayName,
+            role: user.role,
+            photoURL: user.photoURL,
+            isPremium: user.isPremium || false,
+          },
+          token,
+        },
+      });
+    }
+
+    // Traditional email/password registration
+    if (!email || !displayName || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email, display name, and password are required",
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
     // Create new user
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = new User({
       email,
       displayName,
+      password: hashedPassword,
       photoURL,
       role: "user",
     });
@@ -41,6 +120,8 @@ const register = async (req, res) => {
           email: user.email,
           displayName: user.displayName,
           role: user.role,
+          photoURL: user.photoURL,
+          isPremium: user.isPremium || false,
         },
         token,
       },
@@ -57,14 +138,29 @@ const register = async (req, res) => {
 // Login user
 const login = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
 
     // Find user
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({
+    const user = await User.findOne({ email }).select("+password +displayName +photoURL +role +email");
+    if (!user || !user.password) {
+      return res.status(401).json({
         success: false,
-        message: "User not found",
+        message: "Invalid credentials",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
       });
     }
 
@@ -111,7 +207,7 @@ const firebaseAuth = async (req, res) => {
       user = new User({
         uid,
         email,
-        displayName,
+        displayName: displayName || email?.split("@")[0] || "User",
         photoURL,
         role: "user",
       });
@@ -152,10 +248,19 @@ const logout = async (req, res) => {
 // Get current authenticated user
 const getCurrentUser = async (req, res) => {
   try {
-    const User = require("../models/User");
-    const user = await User.findById(
-      req.user.uid || req.user._id || req.user.id
-    );
+    const identifier =
+      req.user?.uid || req.user?._id || req.user?.id || req.user?.email;
+
+    const queries = [];
+    if (identifier) {
+      if (mongoose.Types.ObjectId.isValid(identifier)) {
+        queries.push({ _id: identifier });
+      }
+      queries.push({ uid: identifier });
+      queries.push({ email: identifier });
+    }
+
+    const user = await User.findOne(queries.length ? { $or: queries } : {});
 
     if (!user) {
       return res.status(404).json({
