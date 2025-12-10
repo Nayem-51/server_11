@@ -11,6 +11,7 @@ router.put('/users/:userId/deactivate', verifyToken, isAdmin, adminController.de
 
 router.get('/lessons', verifyToken, isAdmin, adminController.getAllLessonsAdmin);
 router.put('/lessons/:lessonId/publish', verifyToken, isAdmin, adminController.toggleLessonPublish);
+router.put('/lessons/:lessonId/feature', verifyToken, isAdmin, adminController.toggleLessonFeatured);
 
 router.get('/reports', verifyToken, isAdmin, adminController.getAllReports);
 router.put('/reports/:reportId/resolve', verifyToken, isAdmin, adminController.resolveReport);

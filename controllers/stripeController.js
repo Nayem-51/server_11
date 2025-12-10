@@ -197,11 +197,39 @@ const handleWebhook = async (req, res) => {
         console.log('Payment succeeded:', event.data.object);
         break;
 
+      case 'customer.subscription.created':
       case 'customer.subscription.updated':
+      case 'customer.subscription.deleted':
         // Subscription updated
         const subscription = event.data.object;
-        // Update user premium status if needed
+        const userId = subscription.metadata?.userId;
+        
+        if (userId) {
+          const isPremium = subscription.status === 'active' || subscription.status === 'trialing';
+          await User.findByIdAndUpdate(userId, { 
+            isPremium,
+            premiumExpiry: new Date(subscription.current_period_end * 1000)
+          });
+          console.log(`User ${userId} premium status updated to ${isPremium}`);
+        }
         break;
+
+      case 'checkout.session.completed':
+         const session = event.data.object;
+         if (session.payment_status === 'paid') {
+            const userId = session.metadata?.userId; // Assuming you passed this in metadata
+            if (userId) {
+                await User.findByIdAndUpdate(userId, { isPremium: true });
+                console.log(`User ${userId} upgraded to premium via checkout`);
+            } else {
+                 // Try finding by email as fallback
+                 const userEmail = session.customer_details?.email;
+                 if (userEmail) {
+                     await User.findOneAndUpdate({ email: userEmail }, { isPremium: true });
+                 }
+            }
+         }
+         break;
 
       case 'invoice.paid':
         // Invoice paid

