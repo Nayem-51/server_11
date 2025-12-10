@@ -7,17 +7,44 @@ const getAllUsers = async (req, res) => {
   try {
     const { role, page = 1, limit = 10 } = req.query;
 
-    let filter = {};
-    if (role) filter.role = role;
+    let matchStage = {};
+    if (role) matchStage.role = role;
 
-    const skip = (page - 1) * limit;
+    const skip = (page - 1) * parseInt(limit);
 
-    const users = await User.find(filter)
-      .skip(skip)
-      .limit(parseInt(limit))
-      .select('-__v');
+    // Get total count for pagination
+    const total = await User.countDocuments(matchStage);
 
-    const total = await User.countDocuments(filter);
+    // Aggregate to get users with lesson count
+    const users = await User.aggregate([
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: 'lessons',
+          let: { userId: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$instructor', '$$userId'] } } },
+            { $project: { _id: 1 } } // optimize, only need id to count
+          ],
+          as: 'userLessons'
+        }
+      },
+      {
+        $addFields: {
+          lessonsCount: { $size: '$userLessons' }
+        }
+      },
+      {
+        $project: {
+          userLessons: 0,
+          password: 0, 
+          __v: 0
+        }
+      },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: parseInt(limit) }
+    ]);
 
     res.json({
       success: true,
@@ -233,6 +260,11 @@ const reportLesson = async (req, res) => {
 
     await report.save();
 
+    // Update Lesson stats
+    lesson.reportCount = (lesson.reportCount || 0) + 1;
+    lesson.isFlagged = true;
+    await lesson.save();
+
     res.status(201).json({
       success: true,
       message: 'Lesson reported successfully',
@@ -328,19 +360,77 @@ const resolveReport = async (req, res) => {
 const getDashboardStats = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
-    const totalLessons = await Lesson.countDocuments();
+    const totalLessons = await Lesson.countDocuments(); // All lessons
+    const totalPublicLessons = await Lesson.countDocuments({ isPublished: true });
+    
+    // Count reported lessons (either by flag or having reports)
+    const totalReportedLessons = await Lesson.countDocuments({
+      $or: [{ isFlagged: true }, { reportCount: { $gt: 0 } }, { 'reports.0': { $exists: true } }]
+    });
+
     const totalInstructors = await User.countDocuments({ role: 'instructor' });
     const totalPremiumUsers = await User.countDocuments({ isPremium: true });
-    const pendingReports = await Report.countDocuments({ status: 'pending' });
+    
+    // Today's new lessons
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const newLessonsToday = await Lesson.countDocuments({ createdAt: { $gte: startOfDay } });
+
+    // Most active contributors (Top 5)
+    // We need to aggregate lessons by instructor
+    const mostActiveContributors = await Lesson.aggregate([
+      { $group: { _id: "$instructor", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+      { $lookup: { from: "users", localField: "_id", foreignField: "_id", as: "user" } },
+      { $unwind: "$user" },
+      { $project: { name: "$user.displayName", email: "$user.email", count: 1, photo: "$user.photoURL" } }
+    ]);
+
+    // Graph data: Lesson growth last 7 days
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateString = d.toISOString().split('T')[0];
+      
+      const dayStart = new Date(d.setHours(0,0,0,0));
+      const dayEnd = new Date(d.setHours(23,59,59,999));
+      
+      const count = await Lesson.countDocuments({ createdAt: { $gte: dayStart, $lte: dayEnd } });
+      last7Days.push({ name: dateString, lessons: count });
+    }
+
+    // User growth last 7 days (optional but requested in graphs)
+    const userGrowthLast7Days = []; 
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateString = d.toISOString().split('T')[0];
+      
+      const dayStart = new Date(d.setHours(0,0,0,0));
+      const dayEnd = new Date(d.setHours(23,59,59,999));
+      
+      const count = await User.countDocuments({ createdAt: { $gte: dayStart, $lte: dayEnd } });
+      userGrowthLast7Days.push({ name: dateString, users: count });
+    }
+
 
     res.json({
       success: true,
       data: {
         totalUsers,
         totalLessons,
+        totalPublicLessons,
+        totalReportedLessons,
         totalInstructors,
         totalPremiumUsers,
-        pendingReports
+        newLessonsToday,
+        mostActiveContributors,
+        graphData: {
+          lessons: last7Days,
+          users: userGrowthLast7Days
+        }
       }
     });
   } catch (error) {

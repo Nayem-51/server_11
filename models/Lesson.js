@@ -73,6 +73,14 @@ const lessonSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  isFlagged: {
+    type: Boolean,
+    default: false,
+  },
+  reportCount: {
+    type: Number,
+    default: 0,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
