@@ -65,6 +65,14 @@ const lessonSchema = new mongoose.Schema({
     default: false,
   },
   tags: [String],
+  emotionalTone: {
+    type: String,
+    default: "Balanced",
+  },
+  favoritesCount: {
+    type: Number,
+    default: 0,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

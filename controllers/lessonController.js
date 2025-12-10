@@ -45,7 +45,7 @@ const getAllLessons = async (req, res) => {
 // Get public lessons
 const getPublicLessons = async (req, res) => {
   try {
-    const { category, sort, page = 1, limit = 100 } = req.query;
+    const { category, sort, search, page = 1, limit = 100 } = req.query;
 
     // First check if any lessons exist at all
     const totalLessons = await Lesson.countDocuments({});
@@ -141,6 +141,7 @@ const createLesson = async (req, res) => {
       isPublished,
       content,
       tags,
+      emotionalTone,
     } = req.body;
 
     // Validation
@@ -188,6 +189,7 @@ const createLesson = async (req, res) => {
       isPublished: isPublished !== undefined ? isPublished : true,
       content: content || "",
       tags: tags || [],
+      emotionalTone: emotionalTone || "Balanced",
       instructor: instructorId,
     });
 
@@ -223,8 +225,10 @@ const updateLesson = async (req, res) => {
       });
     }
 
-    // Check if user is the instructor
+    // Check if user is the instructor OR admin
+    const isAdmin = req.user.role === "admin";
     if (
+      !isAdmin &&
       lesson.instructor.toString() !== (req.user._id || req.user.uid).toString()
     ) {
       return res.status(403).json({
@@ -265,8 +269,10 @@ const deleteLesson = async (req, res) => {
       });
     }
 
-    // Check if user is the instructor
+    // Check if user is the instructor OR admin
+    const isAdmin = req.user.role === "admin";
     if (
+      !isAdmin &&
       lesson.instructor.toString() !== (req.user._id || req.user.uid).toString()
     ) {
       return res.status(403).json({
