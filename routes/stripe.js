@@ -6,6 +6,7 @@ const verifyToken = require('../middleware/verifyToken');
 // Protected routes
 router.post('/payment-intent', verifyToken, stripeController.createPaymentIntent);
 router.post('/payment-success', verifyToken, stripeController.handlePaymentSuccess);
+router.post('/create-checkout-session', verifyToken, stripeController.createCheckoutSession);
 router.post('/subscription', verifyToken, stripeController.createSubscription);
 router.post('/subscription/cancel', verifyToken, stripeController.cancelSubscription);
 

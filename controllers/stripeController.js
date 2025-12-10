@@ -112,6 +112,69 @@ const handlePaymentSuccess = async (req, res) => {
   }
 };
 
+// Create checkout session for one-time payment or subscription
+const createCheckoutSession = async (req, res) => {
+  try {
+    const { price, currency, mode, successUrl, cancelUrl } = req.body;
+    const userId = req.user._id || req.user.uid;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    let stripeCustomerId = user.stripeCustomerId;
+    if (!stripeCustomerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: user.displayName,
+        metadata: { userId: userId.toString() }
+      });
+      stripeCustomerId = customer.id;
+      user.stripeCustomerId = stripeCustomerId;
+      await user.save();
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      customer: stripeCustomerId,
+      line_items: [
+        {
+          price_data: {
+            currency: currency || 'usd',
+            product_data: {
+              name: 'Premium Lifetime Access',
+              description: 'Unlimited access to all lessons and features',
+            },
+            unit_amount: price * 100, // Amount in smallest currency unit
+          },
+          quantity: 1,
+        },
+      ],
+      mode: mode || 'payment',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: {
+        userId: userId.toString(),
+      },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        sessionUrl: session.url,
+        sessionId: session.id
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error creating checkout session',
+      error: error.message
+    });
+  }
+};
+
 // Create subscription for premium membership
 const createSubscription = async (req, res) => {
   try {
@@ -258,6 +321,7 @@ const handleWebhook = async (req, res) => {
 module.exports = {
   createPaymentIntent,
   handlePaymentSuccess,
+  createCheckoutSession,
   createSubscription,
   cancelSubscription,
   handleWebhook
