@@ -1,48 +1,29 @@
-const User = require('../models/User');
+const User = require("../models/User");
 
-const isAdmin = async (req, res, next) => {
-  try {
-    // Ensure verifyToken middleware has been called first
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Unauthorized - No user found'
-      });
-    }
+module.exports = async function isAdmin(req, res, next) {
+	try {
+		// If role already present on request
+		if (req.user && req.user.role === "admin") {
+			return next();
+		}
 
-    // Find user in database
-    const user = await User.findOne({
-      $or: [
-        { uid: req.user.uid },
-        { email: req.user.email }
-      ]
-    });
+		// Try to load user from DB using _id or uid
+		let userDoc = null;
+		if (req.user?._id) {
+			userDoc = await User.findById(req.user._id).select("role");
+		} else if (req.user?.uid) {
+			userDoc = await User.findOne({ uid: req.user.uid }).select("role");
+		}
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
+		if (userDoc && userDoc.role === "admin") {
+			return next();
+		}
 
-    // Check if user is admin
-    if (user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Forbidden - Admin access required'
-      });
-    }
-
-    // Attach user to request
-    req.user.dbUser = user;
-    next();
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error checking admin status',
-      error: error.message
-    });
-  }
-};
-
-module.exports = isAdmin;
+		return res.status(403).json({
+			success: false,
+			message: "Forbidden: Admins only",
+		});
+	} catch (err) {
+		return res.status(500).json({ success: false, message: err.message });
+	}
+}

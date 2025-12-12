@@ -97,6 +97,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/categories", require("./routes/categories"));
 app.use("/api/stripe", stripeRoutes);
 
 // Health check

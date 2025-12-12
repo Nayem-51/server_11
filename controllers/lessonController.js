@@ -45,7 +45,7 @@ const getAllLessons = async (req, res) => {
 // Get public lessons
 const getPublicLessons = async (req, res) => {
   try {
-    const { category, sort, search, page = 1, limit = 100 } = req.query;
+    const { category, sort, page = 1, limit = 100 } = req.query;
 
     // First check if any lessons exist at all
     const totalLessons = await Lesson.countDocuments({});
@@ -141,23 +141,7 @@ const createLesson = async (req, res) => {
       isPublished,
       content,
       tags,
-      emotionalTone,
-      accessLevel // New field
     } = req.body;
-
-    // Validate Category
-    const allowedCategories = ["Personal Growth", "Career", "Relationships", "Mindset", "Mistakes Learned", "Life", "Other"];
-    if (category && !allowedCategories.includes(category)) {
-       // Optional: just default to Life or return error. Requirements say "Dropdown", suggesting strict input.
-       // Let's allow it but maybe warn? Or just enforce if it's strictly required.
-       // For now, believing the frontend handles the dropdown, but good API practice is to validate.
-    }
-
-    // Validate Emotional Tone
-    const allowedTones = ["Motivational", "Sad", "Realization", "Gratitude", "Balanced", "Other"];
-    if (emotionalTone && !allowedTones.includes(emotionalTone)) {
-      // similar logic
-    }
 
     // Validation
     if (!title || !description || !category) {
@@ -181,14 +165,6 @@ const createLesson = async (req, res) => {
         });
       }
       instructorId = user._id;
-
-      // Check if user is Premium if they are trying to set accessLevel to 'premium'
-      if (accessLevel === "premium" && !user.isPremium) {
-         return res.status(403).json({
-          success: false,
-          message: "Only Premium users can create Premium lessons",
-        });
-      }
     }
 
     if (!instructorId) {
@@ -212,8 +188,6 @@ const createLesson = async (req, res) => {
       isPublished: isPublished !== undefined ? isPublished : true,
       content: content || "",
       tags: tags || [],
-      emotionalTone: emotionalTone || "Balanced",
-      accessLevel: accessLevel || "free",
       instructor: instructorId,
     });
 
@@ -249,33 +223,14 @@ const updateLesson = async (req, res) => {
       });
     }
 
-    // Check if user is the instructor OR admin
-    const isAdmin = req.user.role === "admin";
+    // Check if user is the instructor
     if (
-      !isAdmin &&
       lesson.instructor.toString() !== (req.user._id || req.user.uid).toString()
     ) {
       return res.status(403).json({
         success: false,
         message: "Unauthorized - You can only edit your own lessons",
       });
-    }
-
-    // If updating accessLevel, check if user is premium
-    if (updates.accessLevel === "premium") {
-       // We need to check if the requester is premium.
-       // The req.user might have old data if coming from JWT, better to fetch fresh user or trust middleware if it populated isPremium.
-       // For safety, let's fetch user again or check req.user if we updated middleware.
-       // Assuming req.user has isPremium if it was populated or in token. 
-       // If not, we should probably fetch:
-       const User = require("../models/User");
-       const currentUser = await User.findById(req.user._id || req.user.uid);
-       if (!currentUser.isPremium) {
-          return res.status(403).json({
-            success: false,
-            message: "Only Premium users can set lessons to Premium",
-          });
-       }
     }
 
     Object.assign(lesson, updates);
@@ -300,35 +255,38 @@ const updateLesson = async (req, res) => {
 const deleteLesson = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log(`[DELETE] Attempting to delete lesson: ${id}`);
 
     const lesson = await Lesson.findById(id);
 
     if (!lesson) {
+      console.log(`[DELETE] Lesson not found: ${id}`);
       return res.status(404).json({
         success: false,
         message: "Lesson not found",
       });
     }
 
-    // Check if user is the instructor OR admin
-    const isAdmin = req.user.role === "admin";
+    // Check if user is the instructor
     if (
-      !isAdmin &&
       lesson.instructor.toString() !== (req.user._id || req.user.uid).toString()
     ) {
+      console.log(`[DELETE] Unauthorized - User ${req.user._id} is not instructor of lesson ${id}`);
       return res.status(403).json({
         success: false,
         message: "Unauthorized - You can only delete your own lessons",
       });
     }
 
-    await Lesson.findByIdAndDelete(id);
+    const deletedLesson = await Lesson.findByIdAndDelete(id);
+    console.log(`[DELETE] Lesson deleted successfully: ${id}`, deletedLesson ? `(${deletedLesson.title})` : "");
 
     res.json({
       success: true,
       message: "Lesson deleted successfully",
     });
   } catch (error) {
+    console.error(`[DELETE] Error deleting lesson: ${error.message}`);
     res.status(500).json({
       success: false,
       message: "Error deleting lesson",

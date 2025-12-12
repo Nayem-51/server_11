@@ -42,7 +42,7 @@ const lessonSchema = new mongoose.Schema({
   },
   content: {
     type: String, // Detailed lesson content
-    default: null,
+    default: "",
   },
   rating: {
     type: Number,
@@ -65,22 +65,6 @@ const lessonSchema = new mongoose.Schema({
     default: false,
   },
   tags: [String],
-  emotionalTone: {
-    type: String,
-    default: "Balanced",
-  },
-  favoritesCount: {
-    type: Number,
-    default: 0,
-  },
-  isFlagged: {
-    type: Boolean,
-    default: false,
-  },
-  reportCount: {
-    type: Number,
-    default: 0,
-  },
   createdAt: {
     type: Date,
     default: Date.now,
