@@ -271,7 +271,9 @@ const deleteLesson = async (req, res) => {
     if (
       lesson.instructor.toString() !== (req.user._id || req.user.uid).toString()
     ) {
-      console.log(`[DELETE] Unauthorized - User ${req.user._id} is not instructor of lesson ${id}`);
+      console.log(
+        `[DELETE] Unauthorized - User ${req.user._id} is not instructor of lesson ${id}`
+      );
       return res.status(403).json({
         success: false,
         message: "Unauthorized - You can only delete your own lessons",
@@ -279,7 +281,10 @@ const deleteLesson = async (req, res) => {
     }
 
     const deletedLesson = await Lesson.findByIdAndDelete(id);
-    console.log(`[DELETE] Lesson deleted successfully: ${id}`, deletedLesson ? `(${deletedLesson.title})` : "");
+    console.log(
+      `[DELETE] Lesson deleted successfully: ${id}`,
+      deletedLesson ? `(${deletedLesson.title})` : ""
+    );
 
     res.json({
       success: true,
