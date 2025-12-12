@@ -56,6 +56,28 @@ const lessonSchema = new mongoose.Schema({
       ref: "User",
     },
   ],
+  // Users who favorited this lesson
+  favorites: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ],
+  favoritesCount: {
+    type: Number,
+    default: 0,
+  },
+  // Users who liked this lesson
+  likes: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ],
+  likesCount: {
+    type: Number,
+    default: 0,
+  },
   isPremium: {
     type: Boolean,
     default: false,
