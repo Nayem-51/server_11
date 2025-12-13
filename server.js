@@ -55,6 +55,14 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// Stripe webhook needs raw body, so mount it BEFORE express.json()
+app.use(
+  "/api/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  require("./routes/stripe")
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

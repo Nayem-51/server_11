@@ -24,7 +24,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.0.0",
     "mongoose": "^8.0.0",
-    "stripe": "^14.0.0"
+    "stripe": "^14.25.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
