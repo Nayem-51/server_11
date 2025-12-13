@@ -84,12 +84,12 @@ const getUsers = async (req, res) => {
     // Add lesson count for each user
     const usersWithLessonCount = await Promise.all(
       users.map(async (user) => {
-        const lessonCount = await Lesson.countDocuments({
+        const lessonsCount = await Lesson.countDocuments({
           instructor: user._id,
         });
         return {
           ...user.toObject(),
-          lessonCount,
+          lessonsCount,
         };
       })
     );
@@ -118,7 +118,7 @@ const changeUserRole = async (req, res) => {
     const { userId } = req.params;
     const { role } = req.body;
 
-    if (!["user", "admin"].includes(role)) {
+    if (!["user", "instructor", "admin"].includes(role)) {
       return res.status(400).json({ success: false, message: "Invalid role" });
     }
 
