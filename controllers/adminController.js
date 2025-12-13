@@ -300,6 +300,37 @@ const markAsReviewed = async (req, res) => {
   }
 };
 
+// Deactivate user (soft delete)
+const deactivateUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isActive: false },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "User deactivated successfully",
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error deactivating user",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getStats,
   getUsers,
@@ -309,4 +340,5 @@ module.exports = {
   toggleLessonFeature,
   getReportedLessons,
   markAsReviewed,
+  deactivateUser,
 };

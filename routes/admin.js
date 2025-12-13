@@ -13,6 +13,7 @@ router.get("/stats", adminController.getStats);
 // User management
 router.get("/users", adminController.getUsers);
 router.put("/users/:userId/role", adminController.changeUserRole);
+router.put("/users/:userId/deactivate", adminController.deactivateUser);
 
 // Lesson management
 router.get("/lessons", adminController.getLessons);
