@@ -60,7 +60,7 @@ app.use(
 app.use(
   "/api/stripe/webhook",
   express.raw({ type: "application/json" }),
-  require("./routes/stripe")
+  stripeRoutes
 );
 
 app.use(express.json());
