@@ -6,22 +6,33 @@ const User = require("../models/User");
 // Create Checkout Session
 router.post("/create-checkout-session", async (req, res) => {
   try {
-    const { userId } = req.body; // MongoDB user _id
+    const { userId } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ error: "User ID is required" });
+      return res.status(400).json({
+        success: false,
+        error: "User ID is required",
+      });
     }
 
     // Verify user exists
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
     }
 
     // Check if user is already premium
     if (user.isPremium) {
-      return res.status(400).json({ error: "User is already premium" });
+      return res.status(400).json({
+        success: false,
+        error: "User is already premium",
+      });
     }
+
+    console.log(`Creating checkout session for user: ${userId}`);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -34,23 +45,40 @@ router.post("/create-checkout-session", async (req, res) => {
               name: "Premium Plan (Lifetime)",
               description: "One-time payment for lifetime premium access",
             },
-            unit_amount: 150000, // ৳1500 (amount in paisa/cents)
+            unit_amount: 150000, // ৳1500 in paisa
           },
           quantity: 1,
         },
       ],
-      success_url: `${process.env.CLIENT_URL || process.env.SITE_DOMAIN || "http://localhost:5173"}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL || process.env.SITE_DOMAIN || "http://localhost:5173"}/payment/cancel`,
+      success_url: `${
+        process.env.CLIENT_URL ||
+        process.env.SITE_DOMAIN ||
+        "http://localhost:5173"
+      }/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${
+        process.env.CLIENT_URL ||
+        process.env.SITE_DOMAIN ||
+        "http://localhost:5173"
+      }/payment/cancel`,
       metadata: {
-        userId: userId.toString(), // Store user ID for webhook
+        userId: userId.toString(),
       },
       client_reference_id: userId.toString(),
     });
 
-    res.json({ url: session.url, sessionId: session.id });
+    console.log(`✓ Checkout session created: ${session.id}`);
+
+    res.json({
+      success: true,
+      url: session.url,
+      sessionId: session.id,
+    });
   } catch (error) {
-    console.error("Stripe session creation error:", error);
-    res.status(500).json({ error: "Failed to create checkout session" });
+    console.error("Stripe session creation error:", error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message || "Failed to create checkout session",
+    });
   }
 });
 
@@ -62,6 +90,11 @@ router.post(
     const sig = req.headers["stripe-signature"];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
+    if (!webhookSecret) {
+      console.error("STRIPE_WEBHOOK_SECRET not configured");
+      return res.status(400).json({ error: "Webhook secret not configured" });
+    }
+
     let event;
 
     try {
@@ -71,17 +104,21 @@ router.post(
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
+    console.log(`Received webhook event: ${event.type}`);
+
     // Handle the checkout.session.completed event
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
 
       try {
-        const userId = session.metadata.userId || session.client_reference_id;
+        const userId = session.metadata?.userId || session.client_reference_id;
 
         if (!userId) {
-          console.error("No userId found in session metadata");
+          console.error("No userId found in session metadata:", session);
           return res.status(400).json({ error: "No user ID in metadata" });
         }
+
+        console.log(`Processing payment for user: ${userId}`);
 
         // Update user to premium
         const updatedUser = await User.findByIdAndUpdate(
@@ -100,6 +137,10 @@ router.post(
         }
 
         console.log(`✓ User ${userId} upgraded to premium successfully`);
+        console.log(`  Email: ${updatedUser.email}`);
+        console.log(`  isPremium: ${updatedUser.isPremium}`);
+        console.log(`  Stripe Customer: ${session.customer}`);
+        console.log(`  Session ID: ${session.id}`);
       } catch (error) {
         console.error("Error updating user to premium:", error);
         return res.status(500).json({ error: "Failed to update user" });

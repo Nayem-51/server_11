@@ -17,56 +17,64 @@ const register = async (req, res) => {
       } else if (uid && !existingUser.uid) {
         // Existing user via email, now linking Google/Firebase UID
         existingUser.uid = uid;
-        if (photoURL && !existingUser.photoURL) existingUser.photoURL = photoURL;
-        if (displayName && (!existingUser.displayName || existingUser.displayName === 'User')) existingUser.displayName = displayName;
+        if (photoURL && !existingUser.photoURL)
+          existingUser.photoURL = photoURL;
+        if (
+          displayName &&
+          (!existingUser.displayName || existingUser.displayName === "User")
+        )
+          existingUser.displayName = displayName;
         await existingUser.save();
       } else if (uid && existingUser.uid !== uid) {
-          // Collision? Email exists but UID is different. 
-          // This might happen if user has two google accounts with same email? Unlikely.
-          // Or if they are merging?
-          // For safety, assume we update the user to the new UID if email is verified?
-          // Let's just update it for now to handle re-installs or weird firebase cases.
-          existingUser.uid = uid;
-          await existingUser.save();
+        // Collision? Email exists but UID is different.
+        // This might happen if user has two google accounts with same email? Unlikely.
+        // Or if they are merging?
+        // For safety, assume we update the user to the new UID if email is verified?
+        // Let's just update it for now to handle re-installs or weird firebase cases.
+        existingUser.uid = uid;
+        await existingUser.save();
       }
-      
+
       // Also sync photo/name aggressively for Google logins
       // User expects "gmail image" to show, so we sync it if provided.
       if (uid && existingUser.uid === uid) {
-          let specificChange = false;
-          if (photoURL && existingUser.photoURL !== photoURL) {
-              existingUser.photoURL = photoURL;
-              specificChange = true;
-          }
-          // Also sync display name if it's "User" or missing
-          if (displayName && (!existingUser.displayName || existingUser.displayName === 'User')) {
-              existingUser.displayName = displayName;
-              specificChange = true;
-          }
-          
-          if (specificChange) await existingUser.save();
+        let specificChange = false;
+        if (photoURL && existingUser.photoURL !== photoURL) {
+          existingUser.photoURL = photoURL;
+          specificChange = true;
+        }
+        // Also sync display name if it's "User" or missing
+        if (
+          displayName &&
+          (!existingUser.displayName || existingUser.displayName === "User")
+        ) {
+          existingUser.displayName = displayName;
+          specificChange = true;
+        }
+
+        if (specificChange) await existingUser.save();
       }
 
       // Generate token
       const token = jwt.sign(
-          { uid: existingUser._id, email: existingUser.email },
-          process.env.JWT_SECRET,
-          { expiresIn: "7d" }
+        { uid: existingUser._id, email: existingUser.email },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
       );
       return res.json({
-          success: true,
-          message: "User logged in successfully",
-          data: {
-            user: {
-              _id: existingUser._id,
-              email: existingUser.email,
-              displayName: existingUser.displayName,
-              role: existingUser.role,
-              photoURL: existingUser.photoURL,
-              isPremium: existingUser.isPremium || false,
-            },
-            token,
+        success: true,
+        message: "User logged in successfully",
+        data: {
+          user: {
+            _id: existingUser._id,
+            email: existingUser.email,
+            displayName: existingUser.displayName,
+            role: existingUser.role,
+            photoURL: existingUser.photoURL,
+            isPremium: existingUser.isPremium || false,
           },
+          token,
+        },
       });
 
       return res.status(409).json({
@@ -258,25 +266,25 @@ const firebaseAuth = async (req, res) => {
       // Update existing user with latest Firebase info if available
       if (photoURL && user.photoURL !== photoURL) user.photoURL = photoURL;
       if (displayName && !user.displayName) user.displayName = displayName; // Only if missing, or maybe overwrite?
-      // Let's overwrite displayName if it's "User" or just allow sync? 
+      // Let's overwrite displayName if it's "User" or just allow sync?
       // User might have customized it. Let's ONLY update if 'User' or missing.
       // Actually, user wants "gmail image" to show.
       // If user logs in with Google, we should probably rely on that unless user explicitly changed it in our app.
       // But we just implemented updateProfile.
-      // Safe bet: Update photoURL if user.photoURL is empty. 
+      // Safe bet: Update photoURL if user.photoURL is empty.
       // The user COMPLAINED "does not show gmail image".
       // So we must ensure it shows.
-      
+
       let changed = false;
       if (photoURL && !user.photoURL) {
-          user.photoURL = photoURL;
-          changed = true;
+        user.photoURL = photoURL;
+        changed = true;
       }
-      if (displayName && (!user.displayName || user.displayName === 'User')) {
-          user.displayName = displayName;
-          changed = true;
+      if (displayName && (!user.displayName || user.displayName === "User")) {
+        user.displayName = displayName;
+        changed = true;
       }
-      
+
       if (changed) await user.save();
     }
 
@@ -334,6 +342,10 @@ const getCurrentUser = async (req, res) => {
         message: "User not found",
       });
     }
+
+    console.log(
+      `✓ getCurrentUser - Email: ${user.email}, isPremium: ${user.isPremium}`
+    );
 
     res.json({
       success: true,
