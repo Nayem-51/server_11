@@ -18,19 +18,19 @@ const verifyToken = async (req, res, next) => {
     // Verify Firebase token first
     try {
       const decodedToken = await admin.auth().verifyIdToken(token);
-      
-      // Fetch MongoDB _id for this Firebase UID
+
+      // Fetch MongoDB user for this Firebase UID/email
       let dbUser = await User.findOne({ uid: decodedToken.uid });
-      
-      // Fallback: If not found by UID, try by email (handle legacy/hybrid accounts)
       if (!dbUser && decodedToken.email) {
-          dbUser = await User.findOne({ email: decodedToken.email });
+        dbUser = await User.findOne({ email: decodedToken.email });
       }
-      
+
       req.user = {
         uid: decodedToken.uid,
         email: decodedToken.email,
-        _id: dbUser ? dbUser._id : null
+        _id: dbUser ? dbUser._id : null,
+        role: dbUser?.role,
+        isPremium: dbUser?.isPremium,
       };
       return next();
     } catch (firebaseError) {
@@ -40,7 +40,19 @@ const verifyToken = async (req, res, next) => {
       // In authController, we sign JWT with { uid: user._id }
       // So req.user.uid IS the _id here.
       if (req.user.uid) req.user._id = req.user.uid;
-      
+
+      // Fetch role/isPremium for JWT path
+      if (req.user._id) {
+        const dbUser = await User.findById(req.user._id).select(
+          "role isPremium email"
+        );
+        if (dbUser) {
+          req.user.role = dbUser.role;
+          req.user.isPremium = dbUser.isPremium;
+          req.user.email = req.user.email || dbUser.email;
+        }
+      }
+
       return next();
     }
   } catch (error) {

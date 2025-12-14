@@ -1,6 +1,7 @@
 const Lesson = require("../models/Lesson");
 const Comment = require("../models/Comment");
 const Favorite = require("../models/Favorite");
+const User = require("../models/User");
 
 const buildSearchRegex = (text) => {
   try {
@@ -9,6 +10,19 @@ const buildSearchRegex = (text) => {
     console.warn("Invalid search term provided", err.message);
     return null;
   }
+};
+
+const isAdminUser = async (req) => {
+  if (req.user?.role === "admin") return true;
+  if (req.user?._id) {
+    const userDoc = await User.findById(req.user._id).select("role");
+    return userDoc?.role === "admin";
+  }
+  if (req.user?.uid) {
+    const userDoc = await User.findOne({ uid: req.user.uid }).select("role");
+    return userDoc?.role === "admin";
+  }
+  return false;
 };
 
 // Get all lessons (public)
@@ -265,13 +279,16 @@ const updateLesson = async (req, res) => {
       });
     }
 
-    // Check if user is the instructor
-    if (
-      lesson.instructor.toString() !== (req.user._id || req.user.uid).toString()
-    ) {
+    // Allow instructor or admin
+    const isOwner =
+      lesson.instructor.toString() ===
+      (req.user._id || req.user.uid || "").toString();
+    const adminUser = await isAdminUser(req);
+
+    if (!isOwner && !adminUser) {
       return res.status(403).json({
         success: false,
-        message: "Unauthorized - You can only edit your own lessons",
+        message: "Unauthorized - Only the instructor or an admin can edit",
       });
     }
 
@@ -309,16 +326,19 @@ const deleteLesson = async (req, res) => {
       });
     }
 
-    // Check if user is the instructor
-    if (
-      lesson.instructor.toString() !== (req.user._id || req.user.uid).toString()
-    ) {
+    // Allow instructor or admin
+    const isOwner =
+      lesson.instructor.toString() ===
+      (req.user._id || req.user.uid || "").toString();
+    const adminUser = await isAdminUser(req);
+
+    if (!isOwner && !adminUser) {
       console.log(
-        `[DELETE] Unauthorized - User ${req.user._id} is not instructor of lesson ${id}`
+        `[DELETE] Unauthorized - User ${req.user._id} is not instructor/admin of lesson ${id}`
       );
       return res.status(403).json({
         success: false,
-        message: "Unauthorized - You can only delete your own lessons",
+        message: "Unauthorized - Only the instructor or an admin can delete",
       });
     }
 
