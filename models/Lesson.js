@@ -13,6 +13,10 @@ const lessonSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  emotionalTone: {
+    type: String,
+    default: "Balanced",
+  },
   level: {
     type: String,
     enum: ["beginner", "intermediate", "advanced"],

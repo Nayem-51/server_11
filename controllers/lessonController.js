@@ -2,23 +2,55 @@ const Lesson = require("../models/Lesson");
 const Comment = require("../models/Comment");
 const Favorite = require("../models/Favorite");
 
+const buildSearchRegex = (text) => {
+  try {
+    return new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+  } catch (err) {
+    console.warn("Invalid search term provided", err.message);
+    return null;
+  }
+};
+
 // Get all lessons (public)
 const getAllLessons = async (req, res) => {
   try {
-    const { category, level, sort, page = 1, limit = 100 } = req.query;
+    const {
+      category,
+      level,
+      sort,
+      page = 1,
+      limit = 100,
+      search,
+      emotionalTone,
+    } = req.query;
 
-    let filter = {};
+    const filter = {};
 
     if (category) filter.category = category;
     if (level) filter.level = level;
+    if (emotionalTone) filter.emotionalTone = emotionalTone;
+    if (search) {
+      const regex = buildSearchRegex(search);
+      if (regex) {
+        filter.$or = [
+          { title: regex },
+          { description: regex },
+          { tags: regex },
+          { emotionalTone: regex },
+        ];
+      }
+    }
 
-    const skip = (page - 1) * limit;
+    const limitNum = Math.max(1, parseInt(limit) || 100);
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const skip = (pageNum - 1) * limitNum;
+    const sortKey = sort === "saved" ? "-favoritesCount" : sort || "-createdAt";
 
     const lessons = await Lesson.find(filter)
       .populate("instructor", "displayName photoURL email")
-      .sort(sort || "-createdAt")
+      .sort(sortKey)
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(limitNum);
 
     const total = await Lesson.countDocuments(filter);
     console.log(`getAllLessons returning ${lessons.length} lessons`);
@@ -28,8 +60,8 @@ const getAllLessons = async (req, res) => {
       data: lessons,
       pagination: {
         total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit),
+        page: pageNum,
+        pages: Math.ceil(total / limitNum),
       },
     });
   } catch (error) {
@@ -45,43 +77,51 @@ const getAllLessons = async (req, res) => {
 // Get public lessons
 const getPublicLessons = async (req, res) => {
   try {
-    const { category, sort, page = 1, limit = 100 } = req.query;
+    const {
+      category,
+      sort,
+      page = 1,
+      limit = 100,
+      search,
+      emotionalTone,
+    } = req.query;
 
-    // First check if any lessons exist at all
-    const totalLessons = await Lesson.countDocuments({});
-    console.log(`Total lessons in database: ${totalLessons}`);
-
-    // Try to get published lessons first
-    let filter = { isPublished: true };
+    const filter = { isPublished: true };
     if (category) filter.category = category;
-
-    const skip = (page - 1) * limit;
-
-    let lessons = await Lesson.find(filter)
-      .populate("instructor", "displayName photoURL email")
-      .sort(sort || "-createdAt")
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    // If no published lessons, get all lessons
-    if (lessons.length === 0 && totalLessons > 0) {
-      console.log("No published lessons found, fetching all lessons");
-      lessons = await Lesson.find({})
-        .populate("instructor", "displayName photoURL email")
-        .sort("-createdAt")
-        .limit(parseInt(limit));
+    if (emotionalTone) filter.emotionalTone = emotionalTone;
+    if (search) {
+      const regex = buildSearchRegex(search);
+      if (regex) {
+        filter.$or = [
+          { title: regex },
+          { description: regex },
+          { tags: regex },
+          { emotionalTone: regex },
+        ];
+      }
     }
 
-    const total = lessons.length;
-    console.log(`Returning ${total} lessons`);
+    const limitNum = Math.max(1, parseInt(limit) || 100);
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const skip = (pageNum - 1) * limitNum;
+    const sortKey = sort === "saved" ? "-favoritesCount" : sort || "-createdAt";
+
+    const lessons = await Lesson.find(filter)
+      .populate("instructor", "displayName photoURL email")
+      .sort(sortKey)
+      .skip(skip)
+      .limit(limitNum);
+
+    const total = await Lesson.countDocuments(filter);
+    console.log(`Returning ${lessons.length} public lessons (total: ${total})`);
 
     res.json({
       success: true,
       data: lessons,
       pagination: {
         total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit),
+        page: pageNum,
+        pages: Math.ceil(total / limitNum),
       },
     });
   } catch (error) {
@@ -141,6 +181,7 @@ const createLesson = async (req, res) => {
       isPublished,
       content,
       tags,
+      emotionalTone,
     } = req.body;
 
     // Validation
@@ -186,6 +227,7 @@ const createLesson = async (req, res) => {
       duration: duration || 30,
       isPremium: isPremium || false,
       isPublished: isPublished !== undefined ? isPublished : true,
+      emotionalTone: emotionalTone || "Balanced",
       content: content || "",
       tags: tags || [],
       instructor: instructorId,
