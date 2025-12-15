@@ -37,7 +37,8 @@ router.post("/create-checkout-session", async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
-      locale: "en", // Explicitly set locale to prevent loading errors
+      mode: "payment",
+      locale: "en-US", // Use specific locale to prevent module loading errors
       line_items: [
         {
           price_data: {
