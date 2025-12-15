@@ -59,8 +59,7 @@ app.use(
 // Stripe webhook needs raw body, so mount it BEFORE express.json()
 app.use(
   "/api/stripe/webhook",
-  express.raw({ type: "application/json" }),
-  stripeRoutes
+  express.raw({ type: "application/json" })
 );
 
 app.use(express.json());
