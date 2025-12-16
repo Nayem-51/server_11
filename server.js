@@ -7,29 +7,30 @@ require("dotenv").config();
 
 const admin = require("firebase-admin");
 
-// Initialize Firebase Admin from environment variable
-let firebaseConfig;
+// Initialize Firebase Admin from environment variable (base64 JSON) or local file
+let serviceAccount;
 try {
-  const serviceKeyBase64 = process.env.FIREBASE_SERVICE_KEY;
-  if (serviceKeyBase64) {
-    const serviceKeyJson = Buffer.from(serviceKeyBase64, "base64").toString(
-      "utf-8"
-    );
-    firebaseConfig = JSON.parse(serviceKeyJson);
+  if (process.env.FIREBASE_SERVICE_KEY) {
+    const decoded = Buffer.from(
+      process.env.FIREBASE_SERVICE_KEY,
+      "base64"
+    ).toString("utf8");
+    serviceAccount = JSON.parse(decoded);
   } else {
-    // Fallback: try to load from JSON file if it exists
-    firebaseConfig = require("./digitallifelessonsa11-firebase-adminsdk.json");
+    try {
+      serviceAccount = require("./digitallifelessonsa11-firebase-adminsdk.json");
+    } catch (e) {}
   }
 } catch (err) {
   console.error("Firebase config error:", err.message);
   console.warn(
-    "Firebase auth may not work. Check FIREBASE_SERVICE_KEY env variable."
+    "Firebase auth may not work. Check FIREBASE_SERVICE_KEY env variable or local JSON file."
   );
 }
 
-if (firebaseConfig) {
+if (serviceAccount) {
   admin.initializeApp({
-    credential: admin.credential.cert(firebaseConfig),
+    credential: admin.credential.cert(serviceAccount),
   });
 }
 
@@ -57,10 +58,7 @@ app.use(
 );
 
 // Stripe webhook needs raw body, so mount it BEFORE express.json()
-app.use(
-  "/api/stripe/webhook",
-  express.raw({ type: "application/json" })
-);
+app.use("/api/stripe/webhook", express.raw({ type: "application/json" }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
