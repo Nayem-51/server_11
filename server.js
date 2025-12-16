@@ -50,6 +50,8 @@ app.use(
       "http://localhost:5173",
       "http://localhost:3000",
       "http://localhost:5174",
+      "https://digitallifelessonsa11.web.app",
+      "https://digitallifelessonsa11.firebaseapp.com",
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
