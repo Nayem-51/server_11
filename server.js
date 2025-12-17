@@ -55,7 +55,7 @@ const app = express();
 //   If you want to lock this down later, replace `origin: "*"` with an
 //   explicit origin list.
 const corsOptions = {
-  origin: "*",
+  origin: ["https://digitallifelessonsa11.web.app","http://localhost:5173"],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
