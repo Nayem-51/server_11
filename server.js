@@ -9,22 +9,24 @@ const admin = require("firebase-admin");
 
 // Initialize Firebase Admin from environment variable (base64 JSON) or local file
 let serviceAccount;
+
 try {
   if (process.env.FIREBASE_SERVICE_KEY) {
+    // Production / Deploy (Render, Vercel, Railway)
     const decoded = Buffer.from(
       process.env.FIREBASE_SERVICE_KEY,
       "base64"
     ).toString("utf8");
+
     serviceAccount = JSON.parse(decoded);
   } else {
-    try {
-      serviceAccount = require("./digitallifelessonsa11-firebase-adminsdk.json");
-    } catch (e) {}
+    // Local development fallback
+    serviceAccount = require("./digitallifelessonsa11-firebase-adminsdk.json");
   }
 } catch (err) {
   console.error("Firebase config error:", err.message);
   console.warn(
-    "Firebase auth may not work. Check FIREBASE_SERVICE_KEY env variable or local JSON file."
+    "Firebase Admin SDK not initialized. Check FIREBASE_SERVICE_KEY or local JSON file."
   );
 }
 
@@ -33,6 +35,7 @@ if (serviceAccount) {
     credential: admin.credential.cert(serviceAccount),
   });
 }
+
 
 // Import routes
 const authRoutes = require("./routes/auth");
@@ -44,15 +47,15 @@ const stripeRoutes = require("./routes/stripe");
 const app = express();
 
 // Middleware
+// CORS configuration
+// NOTE:
+// - We are using JWT in Authorization headers (no cookies), so we don't need
+//   credentials / cookies in CORS.
+// - To avoid deployment mismatches and CORS failures, we allow all origins.
+//   If you want to lock this down later, replace `origin: "*"` with an
+//   explicit origin list.
 const corsOptions = {
-  origin: [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://localhost:5174",
-    "https://digitallifelessonsa11.web.app",
-    "https://digitallifelessonsa11.firebaseapp.com",
-  ],
-  credentials: true,
+  origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
