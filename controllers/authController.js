@@ -288,6 +288,13 @@ const firebaseAuth = async (req, res) => {
       if (changed) await user.save();
     }
 
+    // Generate JWT token
+    const token = jwt.sign(
+      { uid: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
     res.json({
       success: true,
       message: "Authentication successful",
@@ -300,6 +307,7 @@ const firebaseAuth = async (req, res) => {
           role: user.role,
           photoURL: user.photoURL,
         },
+        token,
       },
     });
   } catch (error) {
