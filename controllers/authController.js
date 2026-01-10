@@ -193,18 +193,32 @@ const login = async (req, res) => {
     const user = await User.findOne({ email }).select(
       "+password +displayName +photoURL +role +email"
     );
-    if (!user || !user.password) {
+    
+    console.log(`Debug Login: Attempting login for ${email}`);
+
+    if (!user) {
+      console.log(`Debug Login: User not found for ${email}`);
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
+        message: "Invalid credentials (User not found)",
+      });
+    }
+
+    if (!user.password) {
+      console.log(`Debug Login: User ${email} has no password set (likely social login)`);
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials (No password set)",
       });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log(`Debug Login: Password match status for ${email}: ${isMatch}`);
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
+        message: "Invalid credentials (Password mismatch)",
       });
     }
 
