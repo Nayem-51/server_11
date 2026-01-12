@@ -4,7 +4,7 @@ const axios = require("axios");
 const testAdminAPI = async () => {
   try {
     // First, let's get a valid token by checking what's in the database
-    const response = await axios.get("https://digitallifelessonsa11.web.app/api/admin/stats", {
+    const response = await axios.get("http://localhost:5000/api/admin/stats", {
       headers: {
         Authorization: "Bearer test_token_here",
       },
