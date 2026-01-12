@@ -52,12 +52,12 @@ exports.createCheckoutSession = async (req, res) => {
       success_url: `${
         process.env.CLIENT_URL ||
         process.env.SITE_DOMAIN ||
-        "http://localhost:5173"
+        "https://digitallifelessonsa11.web.app"
       }/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${
         process.env.CLIENT_URL ||
         process.env.SITE_DOMAIN ||
-        "http://localhost:5173"
+        "https://digitallifelessonsa11.web.app"
       }/payment/cancel`,
       metadata: {
         userId: userId.toString(),
